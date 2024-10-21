@@ -1,0 +1,57 @@
+version: "3.9"
+
+services:
+
+  app:
+    build: ./app/
+    container_name: torg-app
+    ports:
+      - "8090:8090"
+    depends_on:
+      - torg-zap-db
+    networks:
+      - torg-net
+
+  torg-zap-db:
+    image: postgres:16-alpine3.18
+    container_name: torg-zap-db
+    restart: always
+    env_file:
+      - .env.docker
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB_NAME}
+      - POSTGRES_USER=${POSTGRES_DB_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_DB_PASSWORD}
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_DB_USER}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    ports:
+      - ${POSTGRES_DB_PORT}:5435
+    volumes:
+      - data:/var/lib/postgresql/data
+    networks:
+      - torg-net
+
+  torg-zap-pgadmin:
+    image: dpage/pgadmin4
+    container_name: torg-zap-pgadmin
+    restart: always
+    depends_on:
+      - torg-zap-db
+    env_file:
+      - .env.docker
+    ports:
+      - ${PGADMIN_LISTEN_PORT}:5055
+    environment:
+      - PGADMIN_DEFAULT_EMAIL=${PGADMIN_DEFAULT_EMAIL}
+      - PGADMIN_DEFAULT_PASSWORD=${PGADMIN_DEFAULT_PASSWORD}
+    networks:
+      - torg-net
+
+volumes:
+  data:
+
+networks:
+  torg-net:
